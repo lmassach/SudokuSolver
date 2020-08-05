@@ -139,9 +139,29 @@ def brute_force(grid):
             return  # Only test one cell, recursive_solve will do the rest
 
 
+def dict_increment(d, i):
+    if i in d:
+        d[i] += 1
+    else:
+        d[i] = 1
+
+
+def safe_dict_get(d, i):
+    return d[i] if i in d else 0
+
+
+recursive_calls = 0
+recursive_level = 0
+level_calls = {}
+level_sols = {}
 def recursive_solve(grid):
     """Yields all solutions for a certain grid."""
-    grid = deepcopy(grid)  # Avoid modifying the original
+    # Recursion tracing
+    global recursive_calls, level_calls, level_sols, recursive_level
+    recursive_calls += 1
+    dict_increment(level_calls, recursive_level)
+    # Avoid modifying the original
+    grid = deepcopy(grid)
     # First fill all the cells that have only one possible number
     while True:
         n = fill_unique(grid)
@@ -154,10 +174,13 @@ def recursive_solve(grid):
     if s == -1:
         return  # Grid has errors, no solution here
     if s == 1:
+        dict_increment(level_sols, recursive_level)
         yield grid  # Grid is solved
         return  # Done here
     # If the grid is still not solved go with bruteforce algorithm
+    recursive_level += 1
     yield from brute_force(grid)
+    recursive_level -= 1
 
 
 # Prompt the user to enter a sudoku to be solved
@@ -193,3 +216,8 @@ for sol in recursive_solve(grid):
     sudoku_print(sol)
 print()
 print("{} solutions found.".format(n))
+print("{} total recursive calls.".format(recursive_calls))
+print("Level   Calls   Solutions")
+for l in range(max(level_calls) + 1):
+    print("{:^5d} {:^9d} {:^9d}".format(l, safe_dict_get(level_calls, l),
+                                        safe_dict_get(level_sols, l)))
