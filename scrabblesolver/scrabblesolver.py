@@ -12,13 +12,13 @@ logging.info("Started")
 
 
 def main(stdscr):
-    curses.start_color()
+    # curses.start_color()
     curses.init_pair(Cell.BEGIN, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(Cell.L2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(Cell.L3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(Cell.W2, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(Cell.W3, curses.COLOR_RED, curses.COLOR_BLACK)
-
+    logging.debug("content GREEN = " + repr(curses.color_content(curses.COLOR_GREEN)))
 
     curses.echo()
 
@@ -95,7 +95,6 @@ def main(stdscr):
     curses.noecho()
     while True:
         k = wtable.getkey(Y + 1, X + 1).upper()
-        logging.debug("Input key: " + repr(k))
         if k == "1":
             status("[ENTER] to stop typing")
             wcards.addstr(1, 1 + (WC - lang.NCARDS) // 2, " " * lang.NCARDS)
