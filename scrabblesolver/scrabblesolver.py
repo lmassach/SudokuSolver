@@ -5,9 +5,10 @@ from os import listdir
 from importlib import import_module
 from scrabblesolver_common import Cell, CELL_CH
 
-# For debug only, TODO comment out
+# For debug only
 import logging
 logging.basicConfig(filename='dbg.log', level=logging.DEBUG)
+# logging.disable()  # TODO uncomment when debug is not needed
 logging.info("Started")
 
 
@@ -56,26 +57,41 @@ def main(stdscr):
     wtable.refresh()
 
     # Create window for help/explanation
-    WH = 29
-    whelp = curses.newwin(13, WH + 2, 4, W + 4)
+    WH = 31
+    whelp = curses.newwin(12, WH + 2, 4, W + 4)
     whelp.border()
     whelp.addstr(0, 1 + (WH - 15) // 2, "Help & Commands", curses.A_REVERSE)
-    whelp.addstr(1, 1, "[  1  ] Type your letters")
-    whelp.addstr(2, 1, "[  2  ] Find best word")
-    whelp.addstr(3, 1, "[  0  ] Exit")
-    whelp.addstr(4, 1, "[SPACE] Switch horiz./vert.")
-    whelp.addstr(5, 1, "[←↑ ↓→] Move in table")
-    whelp.addstr(6, 1, "[ DEL ] Delete letter")
-    whelp.addstr(7, 1, "[PAG↑↓] Prev./next found word")
-    whelp.addstr(8, 1, "[ENTER] Accept chosen word")
-    whelp.addstr(9, 1, "[  *  ] Jolly card")
     def status(s):
+        """Replaces the status message (help window's last line)."""
         if len(s) <= WH:
             s = "{0:^{1}}".format(s, WH)
         else:
             s = s[:WH]
-        whelp.addstr(11, 1, s)
+        whelp.addstr(10, 1, s)
         whelp.refresh()
+    def finderkeys(b):
+        """
+        Changes the help displayed between word-finding mode (when b is True)
+        and normal (table-input) mode (when b is False).
+        """
+        whelp.clear()
+        whelp.border()
+        if b:
+            whelp.addstr(1, 1, "[PAG↑↓] Prev./next found word")
+            whelp.addstr(2, 1, "[←↑ ↓→] Prev./next found word")
+            whelp.addstr(3, 1, "[ENTER] Accept chosen word")
+            whelp.addstr(4, 1, "[  0  ] Back to input mode")
+        else:
+            whelp.addstr(1, 1, "[  1  ] Type your letters")
+            whelp.addstr(2, 1, "[  2  ] Find best word")
+            whelp.addstr(3, 1, "[  0  ] Exit")
+            whelp.addstr(4, 1, "[SPACE] Switch horiz./vert.")
+            whelp.addstr(5, 1, "[←↑ ↓→] Move in table")
+            whelp.addstr(6, 1, "[ DEL ] Delete letter")
+            whelp.addstr(7, 1, "[  *  ] Jolly card")
+            whelp.addstr(8, 1, "[ TAB ] Show jolly/letter")
+        whelp.refresh()
+    finderkeys(False)
     status("Table input, horizontal")
 
     # Create a window for color legend
@@ -102,14 +118,16 @@ def main(stdscr):
 
     # Current position, letters on table, letters on ledger, direction
     X, Y = 0, 0
-    TABLE = [" " * W] * H  # TABLE stores letters only
-    TABJ = [[False] * W] * H  # TABJ stores which letters are placed as a jolly
+    TABLE = [[" "] * W for _ in range(H)]  # TABLE stores letters only
+    TABJ = [[False] * W for _ in range(H)]  # TABJ stores which letters are placed as a jolly
     CARDS = ""
-    VERT = False  # Vertical input
+    VERT, J = False, True  # Vertical input, show jollys (vs show their letter)
+    # TODO variable for solution currently being shown
     # Main loop
     curses.noecho()
     while True:
         k = wtable.getkey(Y + 1, X + 1).upper()
+        # logging.debug("Keycode = " + repr(k))
         if k == "1":
             status("[ENTER] to stop typing")
             wcards.addstr(1, 1 + (WC - lang.NCARDS) // 2, " " * lang.NCARDS)
@@ -122,7 +140,21 @@ def main(stdscr):
             wcards.refresh()
             status("Table input, " + ("vertical" if VERT else "horizontal"))
         elif k == "2":
-            pass  # TODO
+            # TODO
+            finderkeys(True)
+            status("Looking for words...")
+            while True:
+                k = wtable.getkey(Y + 1, X + 1).upper()
+                if k == "KEY_PPAGE" or k == "KEY_UP" or k == "KEY_LEFT":
+                    pass  # TODO PagUp
+                elif k == "KEY_NPAGE" or k == "KEY_DOWN" or k == "KEY_RIGHT":
+                    pass  # TODO PagDn
+                elif k == "\n":
+                    pass # TODO Enter
+                elif k == "0":  # ESC is '\0x1b'
+                    break
+            finderkeys(False)
+            status("Table input, " + ("vertical" if VERT else "horizontal"))
         elif k == "0":
             break  # Exit
         elif k == " ":
@@ -136,6 +168,44 @@ def main(stdscr):
             X = max(0, X - 1)
         elif k == "KEY_RIGHT":
             X = min(W - 1, X + 1)
+        elif k == "KEY_DC":
+            TABLE[Y][X] = " " # DEL
+            TABJ[Y][X] = False
+        elif k == "\t":
+            J = not J
+        elif k == "*":
+            status("Type the letter the jolly means")
+            k = wtable.getkey(Y + 1, X + 1).upper()
+            if k in lang.LETTERS and k != "*":
+                TABLE[Y][X] = k
+                TABJ[Y][X] = True
+            status("Table input, " + ("vertical" if VERT else "horizontal"))
+            if VERT:
+                Y = min(H - 1, Y + 1)
+            else:
+                X = min(W - 1, X + 1)
+        elif k in lang.LETTERS:  # and k != "*"
+            TABLE[Y][X] = k
+            TABJ[Y][X] = False
+            if VERT:
+                Y = min(H - 1, Y + 1)
+            else:
+                X = min(W - 1, X + 1)
+
+        # Update table display, TODO use A_STANDOUT for jollys
+        for i in range(H):
+            for j in range(W):
+                cell = lang.TABLE[i][j]
+                cattr = curses.color_pair(cell)
+                if TABLE[i][j] == " ":
+                    wtable.addch(i + 1, j + 1, CELL_CH[cell], cattr)
+                else:
+                    if TABJ[i][j]:
+                        cattr |= curses.A_BOLD
+                        ch = "*" if J else TABLE[i][j]
+                    else:
+                        ch = TABLE[i][j]
+                    wtable.addch(i + 1, j + 1, ch, cattr)
 
 
 curses.wrapper(main)
