@@ -14,14 +14,19 @@ RE_DICT_FILTER = re.compile(r'^[abcdefghilmnopqrstuvzàèéìòù]{2,17}$')
 # Dictionary letter substitution (aka accent removal)
 DICT_SUBS = {'à': 'a', 'è' : 'e', 'é': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u'}
 # Dictionary loading
-DICT = []
+DICT = set()
 with open(DICTFN) as ifs:
     for word in ifs:
         word = word.strip()  # Cut blanks and newlines
         if RE_DICT_FILTER.search(word) is not None:
             for k, v in DICT_SUBS.items():
                 word = word.replace(k, v)
-            DICT.append(word.upper())
+            DICT.add(word.upper())
+# Special words allowed (acronyms, etc.)
+DICT |= {  # Set in-place union
+    # TODO aggiungere targhe, sigle degli stati, etc.
+    'AN'
+}
 
 # How many of each letter
 LETTERS = {
