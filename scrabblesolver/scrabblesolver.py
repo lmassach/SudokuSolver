@@ -12,13 +12,12 @@ logging.info("Started")
 
 
 def main(stdscr):
-    # curses.start_color()
+    # curses.start_color()  # Already done by wrapper if terminal supports it
     curses.init_pair(Cell.BEGIN, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(Cell.L2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(Cell.L3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(Cell.W2, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(Cell.W3, curses.COLOR_RED, curses.COLOR_BLACK)
-    logging.debug("content GREEN = " + repr(curses.color_content(curses.COLOR_GREEN)))
 
     curses.echo()
 
@@ -79,6 +78,21 @@ def main(stdscr):
         whelp.refresh()
     status("Table input, horizontal")
 
+    # Create a window for color legend
+    WL = 16
+    wlegnd = curses.newwin(11, WL + 2, 0, W + WH + 8)
+    wlegnd.border()
+    wlegnd.addstr(0, 1 + (WL - 13) // 2, "Colors legend", curses.A_REVERSE)
+    wlegnd.addstr(1, 1, "* Normal cells", curses.color_pair(Cell.SIMPLE))
+    wlegnd.addstr(2, 1, "* Beginning cell", curses.color_pair(Cell.BEGIN))
+    wlegnd.addstr(3, 1, "* Letter x2", curses.color_pair(Cell.L2))
+    wlegnd.addstr(4, 1, "* Letter x3", curses.color_pair(Cell.L3))
+    wlegnd.addstr(5, 1, "* Word x2", curses.color_pair(Cell.W2))
+    wlegnd.addstr(6, 1, "* Word x3", curses.color_pair(Cell.W3))
+    wlegnd.addstr(8, 1, "Sometimes colors")
+    wlegnd.addstr(9, 1, " don't work :(  ")
+    wlegnd.refresh()
+
     # Create window for holding your letter cards
     WC = max(12, lang.NCARDS)
     wcards = curses.newwin(3, WC + 2, 0, W + 4 + (WH - WC) // 2)
@@ -88,7 +102,8 @@ def main(stdscr):
 
     # Current position, letters on table, letters on ledger, direction
     X, Y = 0, 0
-    TABLE = [" " * W] * H
+    TABLE = [" " * W] * H  # TABLE stores letters only
+    TABJ = [[False] * W] * H  # TABJ stores which letters are placed as a jolly
     CARDS = ""
     VERT = False  # Vertical input
     # Main loop
