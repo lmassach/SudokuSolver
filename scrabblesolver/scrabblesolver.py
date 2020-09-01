@@ -59,8 +59,6 @@ def main(stdscr):
     # Create window for help/explanation
     WH = 31
     whelp = curses.newwin(12, WH + 2, 4, W + 4)
-    whelp.border()
-    whelp.addstr(0, 1 + (WH - 15) // 2, "Help & Commands", curses.A_REVERSE)
     def status(s):
         """Replaces the status message (help window's last line)."""
         if len(s) <= WH:
@@ -76,6 +74,7 @@ def main(stdscr):
         """
         whelp.clear()
         whelp.border()
+        whelp.addstr(0, 1 + (WH - 15) // 2, "Help & Commands", curses.A_REVERSE)
         if b:
             whelp.addstr(1, 1, "[PAG↑↓] Prev./next found word")
             whelp.addstr(2, 1, "[←↑ ↓→] Prev./next found word")
@@ -108,6 +107,14 @@ def main(stdscr):
     wlegnd.addstr(8, 1, "Sometimes colors")
     wlegnd.addstr(9, 1, " don't work :(  ")
     wlegnd.refresh()
+
+    # Create a window for info about the dictionary
+    wdicti = curses.newwin(4, WL + 2, 12, W + WH + 8)
+    wdicti.border()
+    wdicti.addstr(0, 1 + (WL - 10) // 2, "Dictionary", curses.A_REVERSE)
+    wdicti.addstr(1, 1, "{0:^{1},d}".format(len(lang.DICT), WL))
+    wdicti.addstr(2, 1 + (WL - 11) // 2, "known words")
+    wdicti.refresh()
 
     # Create window for holding your letter cards
     WC = max(12, lang.NCARDS)
