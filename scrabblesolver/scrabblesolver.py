@@ -38,6 +38,64 @@ def main(stdscr):
         except Exception:
             pass
     lang = import_module("scrabblesolver_{}".format(langs[ch]))
+    # TODO incroci con altre parole? Li gestisce l'utente!
+    def get_points(word, starty, startx, vert, table, tabj, cards):
+        """
+        Get value (points) of a word `w` starting at the given position
+        `start*`, going vertical if `vert` is True, on a table already populated
+        as in `table` with jollys on `tabj`, given that you have `cards` on the
+        ledger. Return 0 if you can't put that word in that position.
+        The word must fit within the table.
+        """
+        points = 0
+        wmul = 1
+        cards = list(cards)
+        icards = len(cards)
+        jollys = []
+        for k in range(len(word)):
+            jolly = False
+            i = starty + (k if vert else 0)
+            j = startx + (0 if vert else k)
+            if table[i][j] == " ":
+                if word[k] in cards:
+                    cards.remove(word[k])
+                    lmul = 2 if lang.TABLE[i][j] == Cell.L2 else (
+                        3 if lang.TABLE[i][j] == Cell.L3 else 1
+                    )
+                    points += lang.POINTS[word[k]] * lmul
+                elif "*" in cards:
+                    cards.remove("*")
+                    jolly = True
+                else:
+                    return 0, None
+                wmul *= 2 if lang.TABLE[i][j] == Cell.W2 else (
+                    3 if lang.TABLE[i][j] == Cell.W3 else 1
+                )
+            else:
+                if word[k] != table[i][j]:
+                    return 0, None
+                if not tabj[i][j]:
+                    lmul = 2 if lang.TABLE[i][j] == Cell.L2 else (
+                        3 if lang.TABLE[i][j] == Cell.L3 else 1
+                    )
+                    points += lang.POINTS[word[k]] * lmul
+                else:
+                    jolly = True
+                wmul *= 2 if lang.TABLE[i][j] == Cell.W2 else (
+                    3 if lang.TABLE[i][j] == Cell.W3 else 1
+                )
+            jollys.append(jolly)
+        extra = 0
+        dcards = icards - len(cards)
+        if any(jollys):
+            if dcards in lang.EXTRA_NJ:
+                extra += lang.EXTRA_NJ[dcards]
+        else:
+            if dcards in lang.EXTRA_N:
+                extra += lang.EXTRA_N[dcards]
+        if word in lang.EXTRA_W:
+            extra += lang.EXTRA_W[word]
+        return wmul * points + extra, jollys
     stdscr.clear()
     stdscr.refresh()
 
@@ -147,19 +205,66 @@ def main(stdscr):
             wcards.refresh()
             status("Table input, " + ("vertical" if VERT else "horizontal"))
         elif k == "2":
-            # TODO
+            # Word finding
             finderkeys(True)
             status("Looking for words...")
-            while True:
-                k = wtable.getkey(Y + 1, X + 1).upper()
-                if k == "KEY_PPAGE" or k == "KEY_UP" or k == "KEY_LEFT":
-                    pass  # TODO PagUp
-                elif k == "KEY_NPAGE" or k == "KEY_DOWN" or k == "KEY_RIGHT":
-                    pass  # TODO PagDn
-                elif k == "\n":
-                    pass # TODO Enter
-                elif k == "0":  # ESC is '\0x1b'
-                    break
+            if CARDS == "":
+                status("No letters!")
+                wtable.getkey(Y + 1, X + 1)
+            else:
+                fWORDS = []  # List of tuples (word, jollys, starty, startx, vert, points)
+                for i in range(H):
+                    for j in range(W):
+                        for w in lang.DICT:
+                            if 2 <= len(w) <= W - j:
+                                # Look for horizontal words matching the letters
+                                # already on the board/table
+                                pts, js = get_points(w, i, j, False, TABLE, TABJ, CARDS)
+                                if pts != 0:
+                                    fWORDS.append((w, js, i, j, False, pts))
+                            if 2 <= len(w) <= H - i:
+                                # Look for vertical words matching the letters
+                                # already on the board/table
+                                pts, js = get_points(w, i, j, True, TABLE, TABJ, CARDS)
+                                if pts != 0:
+                                    fWORDS.append((w, js, i, j, True, pts))
+                if len(fWORDS) == 0:
+                    status("No word found.")
+                    wtable.getkey(Y + 1, X + 1)
+                else:
+                    # Word selection loop
+                    fI = 0
+                    color = curses.color_pair(Cell.W3)  # Red
+                    fWORDS.sort(key=lambda x: x[-1])
+                    while True:
+                        fW, fJ, fY, fX, fV, fP = fWORDS[fI]
+                        for k in range(len(fW)):
+                            i = fY + (k if fV else 0)
+                            j = fX + (0 if fV else k)
+                            ch = "*" if fJ[k] else fW[k]
+                            wtable.addch(i + 1, j + 1, ch, color)
+                        for i in range(H):
+                            for j in range(W):
+                                ch = "*" if TABJ[i][j] else TABLE[i][j]
+                                wtable.addch(i + 1, j + 1, ch)
+                        status("{} ({})".format(fW, fP))
+
+                        k = wtable.getkey(Y + 1, X + 1).upper()
+                        if k == "KEY_PPAGE" or k == "KEY_UP" or k == "KEY_LEFT":
+                            fI = min(fI + 1, len(fWORDS) - 1)
+                        elif k == "KEY_NPAGE" or k == "KEY_DOWN" or k == "KEY_RIGHT":
+                            fI = max(fI - 1, 0)
+                        elif k == "\n":  # Enter
+                            for k in range(len(fW)):
+                                i = fY + (k if fV else 0)
+                                j = fX + (0 if fV else k)
+                                TABLE[i][j] = fW[k]
+                                TABJ[i][j] = fJ[k]
+                                CARDS = ""
+                                break
+                        elif k == "0":  # ESC is '\0x1b'
+                            break
+            # Out of the loop, the table will be updated at the end of the if
             finderkeys(False)
             status("Table input, " + ("vertical" if VERT else "horizontal"))
         elif k == "0":
