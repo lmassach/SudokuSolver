@@ -107,7 +107,7 @@ def main(stdscr):
     for i in range(H):
         for j in range(W):
             cell = lang.TABLE[i][j]
-            wtable.addch(i + 1, j + 1, CELL_CH[cell], curses.color_pair(cell))
+            wtable.addstr(i + 1, j + 1, CELL_CH[cell], curses.color_pair(cell))
 
     curses.curs_set(2)
     # Convert esc sequences (like those for arrows) into curses-standard codes
@@ -252,13 +252,13 @@ def main(stdscr):
                         for i in range(H):
                             for j in range(W):
                                 ch = "*" if TABJ[i][j] else TABLE[i][j]
-                                wtable.addch(i + 1, j + 1, ch)
+                                wtable.addstr(i + 1, j + 1, ch)
                         for k in range(len(fW)):
                             i = fY + (k if fV else 0)
                             j = fX + (0 if fV else k)
                             if TABLE[i][j] == " ":
                                 ch = "*" if fJ[k] else fW[k]
-                                wtable.addch(i + 1, j + 1, ch, color)
+                                wtable.addstr(i + 1, j + 1, ch, color)
                         wtable.refresh()
                         status("{} ({})".format(fW, fP))
 
@@ -326,14 +326,14 @@ def main(stdscr):
                 cell = lang.TABLE[i][j]
                 cattr = curses.color_pair(cell)
                 if TABLE[i][j] == " ":
-                    wtable.addch(i + 1, j + 1, CELL_CH[cell], cattr)
+                    wtable.addstr(i + 1, j + 1, CELL_CH[cell], cattr)
                 else:
                     if TABJ[i][j]:
                         cattr |= curses.A_BOLD
                         ch = "*" if J else TABLE[i][j]
                     else:
                         ch = TABLE[i][j]
-                    wtable.addch(i + 1, j + 1, ch, cattr)
+                    wtable.addstr(i + 1, j + 1, ch, cattr)
 
 
 curses.wrapper(main)
