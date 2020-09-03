@@ -212,22 +212,32 @@ def main(stdscr):
                 status("No letters!")
                 wtable.getkey(Y + 1, X + 1)
             else:
-                fWORDS = []  # List of tuples (word, jollys, starty, startx, vert, points)
+                fWORDS = {}  # Dict of tuples word: (jollys, starty, startx, vert, points)
                 for i in range(H):
                     for j in range(W):
-                        for w in lang.DICT:
-                            if 2 <= len(w) <= W - j:
-                                # Look for horizontal words matching the letters
-                                # already on the board/table
-                                pts, js = get_points(w, i, j, False, TABLE, TABJ, CARDS)
-                                if pts != 0:
-                                    fWORDS.append((w, js, i, j, False, pts))
-                            if 2 <= len(w) <= H - i:
-                                # Look for vertical words matching the letters
-                                # already on the board/table
-                                pts, js = get_points(w, i, j, True, TABLE, TABJ, CARDS)
-                                if pts != 0:
-                                    fWORDS.append((w, js, i, j, True, pts))
+                        # Look for horizontal words matching the letters
+                        # already on the board/table
+                        lmin = [k for k in range(j, W) if TABLE[i][k] != " " or lang.TABLE[i][k] == Cell.BEGIN]
+                        if j < W - 1 and len(lmin) != 0:
+                            lmin = max(2, lmin[0] - j + 1)
+                            for w in lang.DICT:
+                                if lmin <= len(w) <= W - j:
+                                    pts, js = get_points(w, i, j, False, TABLE, TABJ, CARDS)
+                                    if pts != 0:
+                                        if w not in fWORDS or fWORDS[w][-1] < pts:
+                                            fWORDS[w] = (js, i, j, False, pts)
+                        # Look for vertical words matching the letters
+                        # already on the board/table
+                        lmin = [k for k in range(i, H) if TABLE[k][j] != " " or lang.TABLE[k][j] == Cell.BEGIN]
+                        if i < H - 1 and len(lmin) != 0:
+                            lmin = max(2, lmin[0] - i + 1)
+                            for w in lang.DICT:
+                                if lmin <= len(w) <= H - i:
+                                    pts, js = get_points(w, i, j, True, TABLE, TABJ, CARDS)
+                                    if pts != 0:
+                                        if w not in fWORDS or fWORDS[w][-1] < pts:
+                                            fWORDS[w] = (js, i, j, True, pts)
+                        # TODO exclude words that have a letter before/after beginning/ending
                 if len(fWORDS) == 0:
                     status("No word found.")
                     wtable.getkey(Y + 1, X + 1)
@@ -235,25 +245,28 @@ def main(stdscr):
                     # Word selection loop
                     fI = 0
                     color = curses.color_pair(Cell.W3)  # Red
-                    fWORDS.sort(key=lambda x: x[-1])
+                    fWORDS = [(k, *fWORDS[k]) for k in fWORDS]
+                    fWORDS.sort(key=lambda x: -x[-1])
                     while True:
                         fW, fJ, fY, fX, fV, fP = fWORDS[fI]
-                        for k in range(len(fW)):
-                            i = fY + (k if fV else 0)
-                            j = fX + (0 if fV else k)
-                            ch = "*" if fJ[k] else fW[k]
-                            wtable.addch(i + 1, j + 1, ch, color)
                         for i in range(H):
                             for j in range(W):
                                 ch = "*" if TABJ[i][j] else TABLE[i][j]
                                 wtable.addch(i + 1, j + 1, ch)
+                        for k in range(len(fW)):
+                            i = fY + (k if fV else 0)
+                            j = fX + (0 if fV else k)
+                            if TABLE[i][j] == " ":
+                                ch = "*" if fJ[k] else fW[k]
+                                wtable.addch(i + 1, j + 1, ch, color)
+                        wtable.refresh()
                         status("{} ({})".format(fW, fP))
 
                         k = wtable.getkey(Y + 1, X + 1).upper()
                         if k == "KEY_PPAGE" or k == "KEY_UP" or k == "KEY_LEFT":
-                            fI = min(fI + 1, len(fWORDS) - 1)
-                        elif k == "KEY_NPAGE" or k == "KEY_DOWN" or k == "KEY_RIGHT":
                             fI = max(fI - 1, 0)
+                        elif k == "KEY_NPAGE" or k == "KEY_DOWN" or k == "KEY_RIGHT":
+                            fI = min(fI + 1, len(fWORDS) - 1)
                         elif k == "\n":  # Enter
                             for k in range(len(fW)):
                                 i = fY + (k if fV else 0)
@@ -261,7 +274,10 @@ def main(stdscr):
                                 TABLE[i][j] = fW[k]
                                 TABJ[i][j] = fJ[k]
                                 CARDS = ""
-                                break
+                                wcards.addstr(1, 1 + (WC - lang.NCARDS) // 2, " " * lang.NCARDS)
+                                wcards.addstr(1, 1 + (WC - lang.NCARDS) // 2, CARDS)
+                                wcards.refresh()
+                            break
                         elif k == "0":  # ESC is '\0x1b'
                             break
             # Out of the loop, the table will be updated at the end of the if
