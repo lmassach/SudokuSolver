@@ -153,7 +153,7 @@ def main(stdscr):
 
     # Create a window for color legend
     WL = 16
-    wlegnd = curses.newwin(11, WL + 2, 0, W + WH + 8)
+    wlegnd = curses.newwin(8, WL + 2, 0, W + WH + 8)
     wlegnd.border()
     wlegnd.addstr(0, 1 + (WL - 13) // 2, "Colors legend", curses.A_REVERSE)
     wlegnd.addstr(1, 1, "* Normal cells", curses.color_pair(Cell.SIMPLE))
@@ -162,8 +162,8 @@ def main(stdscr):
     wlegnd.addstr(4, 1, "* Letter x3", curses.color_pair(Cell.L3))
     wlegnd.addstr(5, 1, "* Word x2", curses.color_pair(Cell.W2))
     wlegnd.addstr(6, 1, "* Word x3", curses.color_pair(Cell.W3))
-    wlegnd.addstr(8, 1, "Sometimes colors")
-    wlegnd.addstr(9, 1, " don't work :(  ")
+    # wlegnd.addstr(8, 1, "Sometimes colors")
+    # wlegnd.addstr(9, 1, " don't work :(  ")
     wlegnd.refresh()
 
     # Create a window for info about the dictionary
@@ -218,10 +218,10 @@ def main(stdscr):
                         # Look for horizontal words matching the letters
                         # already on the board/table
                         lmin = [k for k in range(j, W) if TABLE[i][k] != " " or lang.TABLE[i][k] == Cell.BEGIN]
-                        if j < W - 1 and len(lmin) != 0:
+                        if j < W - 1 and len(lmin) != 0 and (j == 0 or TABLE[i][j - 1] == " "):
                             lmin = max(2, lmin[0] - j + 1)
                             for w in lang.DICT:
-                                if lmin <= len(w) <= W - j:
+                                if lmin <= len(w) <= W - j and (j + len(w) == W or TABLE[i][j + len(w)] == " "):
                                     pts, js = get_points(w, i, j, False, TABLE, TABJ, CARDS)
                                     if pts != 0:
                                         if w not in fWORDS or fWORDS[w][-1] < pts:
@@ -229,15 +229,14 @@ def main(stdscr):
                         # Look for vertical words matching the letters
                         # already on the board/table
                         lmin = [k for k in range(i, H) if TABLE[k][j] != " " or lang.TABLE[k][j] == Cell.BEGIN]
-                        if i < H - 1 and len(lmin) != 0:
+                        if i < H - 1 and len(lmin) != 0 and (i == 0 or TABLE[i - 1][j] == " "):
                             lmin = max(2, lmin[0] - i + 1)
                             for w in lang.DICT:
-                                if lmin <= len(w) <= H - i:
+                                if lmin <= len(w) <= H - i and (i + len(w) == H or TABLE[i + len(w)][j] == " "):
                                     pts, js = get_points(w, i, j, True, TABLE, TABJ, CARDS)
                                     if pts != 0:
                                         if w not in fWORDS or fWORDS[w][-1] < pts:
                                             fWORDS[w] = (js, i, j, True, pts)
-                        # TODO exclude words that have a letter before/after beginning/ending
                 if len(fWORDS) == 0:
                     status("No word found.")
                     wtable.getkey(Y + 1, X + 1)
