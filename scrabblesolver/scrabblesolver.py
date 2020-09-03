@@ -87,6 +87,8 @@ def main(stdscr):
             jollys.append(jolly)
         extra = 0
         dcards = icards - len(cards)
+        if dcards == 0:
+            return 0, None  # We have found a word that is already on the board
         if any(jollys):
             if dcards in lang.EXTRA_NJ:
                 extra += lang.EXTRA_NJ[dcards]
@@ -104,10 +106,10 @@ def main(stdscr):
     wtable = curses.newwin(H + 2, W + 2, 0, 0)
     wtable.border()
     wtable.addstr(0, 1 + (W - 10) // 2, "Game table", curses.A_REVERSE)
-    for i in range(H):
-        for j in range(W):
-            cell = lang.TABLE[i][j]
-            wtable.addstr(i + 1, j + 1, CELL_CH[cell], curses.color_pair(cell))
+    # for i in range(H):
+    #     for j in range(W):
+    #         cell = lang.TABLE[i][j]
+    #         wtable.addstr(i + 1, j + 1, CELL_CH[cell], curses.color_pair(cell))
 
     curses.curs_set(2)
     # Convert esc sequences (like those for arrows) into curses-standard codes
@@ -191,6 +193,23 @@ def main(stdscr):
     # Main loop
     curses.noecho()
     while True:
+        # Update table display
+        for i in range(H):
+            for j in range(W):
+                cell = lang.TABLE[i][j]
+                cattr = curses.color_pair(cell)
+                if TABLE[i][j] == " ":
+                    # wtable.addstr(i + 1, j + 1, CELL_CH[cell], cattr)
+                    cattr |= curses.A_REVERSE if lang.TABLE[i][j] != Cell.SIMPLE else 0
+                    wtable.addstr(i + 1, j + 1, " ", cattr)
+                else:
+                    if TABJ[i][j]:
+                        cattr |= curses.A_BOLD
+                        ch = "*" if J else TABLE[i][j]
+                    else:
+                        ch = TABLE[i][j]
+                    wtable.addstr(i + 1, j + 1, ch, cattr)
+
         k = wtable.getkey(Y + 1, X + 1).upper()
         # logging.debug("Keycode = " + repr(k))
         if k == "1":
@@ -207,13 +226,14 @@ def main(stdscr):
         elif k == "2":
             # Word finding
             finderkeys(True)
-            status("Looking for words...")
+            # status("Looking for words...")
             if CARDS == "":
                 status("No letters!")
                 wtable.getkey(Y + 1, X + 1)
             else:
                 fWORDS = {}  # Dict of tuples word: (jollys, starty, startx, vert, points)
                 for i in range(H):
+                    status("Looking for words {:.0%}".format(i / H))
                     for j in range(W):
                         # Look for horizontal words matching the letters
                         # already on the board/table
@@ -318,21 +338,6 @@ def main(stdscr):
                 Y = min(H - 1, Y + 1)
             else:
                 X = min(W - 1, X + 1)
-
-        # Update table display, TODO use A_STANDOUT for jollys
-        for i in range(H):
-            for j in range(W):
-                cell = lang.TABLE[i][j]
-                cattr = curses.color_pair(cell)
-                if TABLE[i][j] == " ":
-                    wtable.addstr(i + 1, j + 1, CELL_CH[cell], cattr)
-                else:
-                    if TABJ[i][j]:
-                        cattr |= curses.A_BOLD
-                        ch = "*" if J else TABLE[i][j]
-                    else:
-                        ch = TABLE[i][j]
-                    wtable.addstr(i + 1, j + 1, ch, cattr)
 
 
 curses.wrapper(main)
