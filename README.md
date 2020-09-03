@@ -14,6 +14,3 @@ The program also assumes that a dictionary for the appropriate language is
 present in `/usr/share/dict`, shuch as `/usr/share/dict/italian` for the `it`
 version, etc. The dictionary should provide a list of words, one per line, as
 those provided by the `w*` Debian packages (`witalian`, etc.).
-
-The program does not check (for now) that words forming perpendicular to the
-proposed words are valid, so you should.

@@ -68,6 +68,41 @@ def main(stdscr):
                     jolly = True
                 else:
                     return 0, None
+                # Check if a word is formed perpendicularly at this location
+                if vert:
+                    if (j > 0 and table[i][j - 1] != " ") or (j < W - 1 and table[i][j + 1] != " "):
+                        si = j
+                        for l in range(j, -1, -1):
+                            if table[i][l] != " ":
+                                si = l
+                            else:
+                                break
+                        pw = ""
+                        for l in range(si, W):
+                            if table[i][l] != " ":
+                                pw += table[i][l]
+                            else:
+                                break
+                        if pw not in lang.DICT:
+                            return 0, None
+                else:
+                    if (i > 0 and table[i - 1][j] != " ") or (i < H - 1 and table[i + 1][j] != " "):
+                        si = i
+                        for l in range(i, -1, -1):
+                            if table[l][j] != " ":
+                                si = l
+                            else:
+                                break
+                        pw = ""
+                        for l in range(si, H):
+                            if table[l][j] != " ":
+                                pw += table[l][j]
+                            else:
+                                break
+                        if pw not in lang.DICT:
+                            return 0, None
+                # TODO check if we have formed new words perpindicularly
+                # TODO if we have, check that they are in lang.DICT
                 wmul *= 2 if lang.TABLE[i][j] == Cell.W2 else (
                     3 if lang.TABLE[i][j] == Cell.W3 else 1
                 )
@@ -106,10 +141,6 @@ def main(stdscr):
     wtable = curses.newwin(H + 2, W + 2, 0, 0)
     wtable.border()
     wtable.addstr(0, 1 + (W - 10) // 2, "Game table", curses.A_REVERSE)
-    # for i in range(H):
-    #     for j in range(W):
-    #         cell = lang.TABLE[i][j]
-    #         wtable.addstr(i + 1, j + 1, CELL_CH[cell], curses.color_pair(cell))
 
     curses.curs_set(2)
     # Convert esc sequences (like those for arrows) into curses-standard codes
@@ -199,16 +230,11 @@ def main(stdscr):
                 cell = lang.TABLE[i][j]
                 cattr = curses.color_pair(cell)
                 if TABLE[i][j] == " ":
-                    # wtable.addstr(i + 1, j + 1, CELL_CH[cell], cattr)
                     cattr |= curses.A_REVERSE if lang.TABLE[i][j] != Cell.SIMPLE else 0
-                    wtable.addstr(i + 1, j + 1, " ", cattr)
-                else:
-                    if TABJ[i][j]:
-                        cattr |= curses.A_BOLD
-                        ch = "*" if J else TABLE[i][j]
-                    else:
-                        ch = TABLE[i][j]
-                    wtable.addstr(i + 1, j + 1, ch, cattr)
+                if TABJ[i][j]:
+                    cattr |= curses.A_BOLD
+                ch = "*" if (J and TABJ[i][j]) else TABLE[i][j]
+                wtable.addstr(i + 1, j + 1, ch, cattr)
 
         k = wtable.getkey(Y + 1, X + 1).upper()
         # logging.debug("Keycode = " + repr(k))
@@ -232,8 +258,11 @@ def main(stdscr):
                 wtable.getkey(Y + 1, X + 1)
             else:
                 fWORDS = {}  # Dict of tuples word: (jollys, starty, startx, vert, points)
+                wtable.nodelay(True)  # Non-blocking getch for interruption
                 for i in range(H):
                     status("Looking for words {:.0%}".format(i / H))
+                    if wtable.getch(Y + 1, X + 1) == ord('0'):
+                        break
                     for j in range(W):
                         # Look for horizontal words matching the letters
                         # already on the board/table
@@ -257,6 +286,7 @@ def main(stdscr):
                                     if pts != 0:
                                         if w not in fWORDS or fWORDS[w][-1] < pts:
                                             fWORDS[w] = (js, i, j, True, pts)
+                wtable.nodelay(False)  # Restore blocking getch
                 if len(fWORDS) == 0:
                     status("No word found.")
                     wtable.getkey(Y + 1, X + 1)
@@ -317,6 +347,13 @@ def main(stdscr):
             X = min(W - 1, X + 1)
         elif k == "KEY_DC":
             TABLE[Y][X] = " " # DEL
+            TABJ[Y][X] = False
+        elif k == "KEY_BACKSPACE":
+            if VERT:
+                Y = max(0, Y - 1)
+            else:
+                X = max(0, X - 1)
+            TABLE[Y][X] = " "
             TABJ[Y][X] = False
         elif k == "\t":
             J = not J
