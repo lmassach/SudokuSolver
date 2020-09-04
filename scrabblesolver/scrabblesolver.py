@@ -5,11 +5,11 @@ from os import listdir
 from importlib import import_module
 from scrabblesolver_common import Cell, CELL_CH
 
-# For debug only
-import logging
-logging.basicConfig(filename='dbg.log', level=logging.DEBUG)
-# logging.disable()  # TODO uncomment when debug is not needed
-logging.info("Started")
+# # For debug only
+# import logging
+# logging.basicConfig(filename='dbg.log', level=logging.DEBUG)
+# # logging.disable()  # TODO uncomment when debug is not needed
+# logging.info("Started")
 
 
 def main(stdscr):
@@ -142,7 +142,7 @@ def main(stdscr):
     wtable.border()
     wtable.addstr(0, 1 + (W - 10) // 2, "Game table", curses.A_REVERSE)
 
-    curses.curs_set(2)
+    # curses.curs_set(2)
     # Convert esc sequences (like those for arrows) into curses-standard codes
     wtable.keypad(True)
     wtable.refresh()
@@ -260,10 +260,10 @@ def main(stdscr):
                 fWORDS = {}  # Dict of tuples word: (jollys, starty, startx, vert, points)
                 wtable.nodelay(True)  # Non-blocking getch for interruption
                 for i in range(H):
-                    status("Looking for words {:.0%}".format(i / H))
-                    if wtable.getch(Y + 1, X + 1) == ord('0'):
-                        break
                     for j in range(W):
+                        status("Looking for words {:.0%}".format((i * W + j) / W / H))
+                        if wtable.getch(Y + 1, X + 1) == ord('0'):
+                            break
                         # Look for horizontal words matching the letters
                         # already on the board/table
                         lmin = [k for k in range(j, W) if TABLE[i][k] != " " or lang.TABLE[i][k] == Cell.BEGIN]
