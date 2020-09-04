@@ -1,5 +1,6 @@
 # Log/debug files
 *.log
+*.dict
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

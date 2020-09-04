@@ -1,12 +1,14 @@
 # Configuration file for solving Scrabble in italian.
 from scrabblesolver_common import Cell
 import re
+from os.path import join, isfile, dirname, abspath
 
 __ALL__ = ['DICT', 'LETTERS', 'POINTS', 'TABLE']
 
 
 # Dictionary file
-DICTFN = "/usr/share/dict/italian"
+DICTFN = ["/usr/share/dict/italian",
+          join(dirname(abspath(__file__)), "italian.dict")]
 # Dictionary word filter: only words with the (21) italian letters plus the
 # accented ones; only lowercase characters to cut out names; only 2+ letters
 # words that fit in the table (<= 17 letters).
@@ -15,13 +17,17 @@ RE_DICT_FILTER = re.compile(r'^[abcdefghilmnopqrstuvzàèéìòù]{2,17}$')
 DICT_SUBS = {'à': 'a', 'è' : 'e', 'é': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u'}
 # Dictionary loading
 DICT = set()
-with open(DICTFN) as ifs:
-    for word in ifs:
-        word = word.strip()  # Cut blanks and newlines
-        if RE_DICT_FILTER.search(word) is not None:
-            for k, v in DICT_SUBS.items():
-                word = word.replace(k, v)
-            DICT.add(word.upper())
+for fp in DICTFN:
+    if isfile(fp):
+        with open(fp) as ifs:
+            for word in ifs:
+                word = word.strip()  # Cut blanks and newlines
+                if RE_DICT_FILTER.search(word) is not None:
+                    for k, v in DICT_SUBS.items():
+                        word = word.replace(k, v)
+                    DICT.add(word.upper())
+if len(DICT) == 0:
+    raise RuntimeError("No dictionary file was found.")
 # Special words allowed (acronyms, etc.)
 DICT |= {  # Set in-place union
     # TODO aggiungere targhe, sigle degli stati, etc.
