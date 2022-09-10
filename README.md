@@ -1,3 +1,5 @@
+**Some more optimization can definitely still be done, but I am not moving on with this.**
+
 # SudokuSolver
 A sudoku-solving script implemented in pure Python 3 (only standard modules are
 used).
